@@ -1,0 +1,71 @@
+name:                lnrpc
+version:             0.1.0.0
+
+verbatim:
+  extra-source-files: proto/*.proto,proto/google/api/*.proto,proto/google/protobuf/*.proto
+
+build-type: Custom
+
+dependencies:
+- base >= 4.7 && < 5
+- http-conduit
+- http-client
+- http-client-tls
+- tls
+- connection
+- bytestring
+- text
+- base64
+- connection
+- x509-store
+- pretty-hex
+- aeson
+- unliftio-core
+- conduit
+
+build-tools: proto-lens-protoc:proto-lens-protoc
+
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    - proto-lens-setup
+
+library:
+  source-dirs: src
+  # exposed-modules:
+  #   - Proto.Rpc
+  #   - Proto.Rpc_Fields
+  #   - Proto.Google.Api.Annotations
+  #   - Proto.Google.Api.Http
+  #   - Proto.Google.Protobuf.Descriptor
+
+  dependencies:
+    - base
+    - proto-lens-runtime
+
+executables:
+  lnrpc-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - lnrpc
+    - microlens
+    - proto-lens
+
+
+tests:
+  lnrpc-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - lnrpc

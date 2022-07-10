@@ -1,0 +1,103 @@
+cabal-version: 1.24
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           lnrpc
+version:        0.1.0.0
+license:        BSD3
+license-file:   LICENSE
+build-type:     Custom
+extra-source-files: proto/*.proto,proto/google/api/*.proto,proto/google/protobuf/*.proto
+
+custom-setup
+  setup-depends:
+      Cabal
+    , base
+    , proto-lens-setup
+
+library
+  exposed-modules:
+      LNRPC.HTTP
+      LNRPC.Invoice
+  other-modules:
+      Paths_lnrpc
+  hs-source-dirs:
+      src
+  build-tool-depends:
+      proto-lens-protoc:proto-lens-protoc
+  build-depends:
+      aeson
+    , base
+    , base64
+    , bytestring
+    , conduit
+    , connection
+    , http-client
+    , http-client-tls
+    , http-conduit
+    , pretty-hex
+    , proto-lens-runtime
+    , text
+    , tls
+    , unliftio-core
+    , x509-store
+  default-language: Haskell2010
+
+executable lnrpc-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_lnrpc
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      proto-lens-protoc:proto-lens-protoc
+  build-depends:
+      aeson
+    , base
+    , base64
+    , bytestring
+    , conduit
+    , connection
+    , http-client
+    , http-client-tls
+    , http-conduit
+    , lnrpc
+    , microlens
+    , pretty-hex
+    , proto-lens
+    , text
+    , tls
+    , unliftio-core
+    , x509-store
+  default-language: Haskell2010
+
+test-suite lnrpc-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_lnrpc
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      proto-lens-protoc:proto-lens-protoc
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , base64
+    , bytestring
+    , conduit
+    , connection
+    , http-client
+    , http-client-tls
+    , http-conduit
+    , lnrpc
+    , pretty-hex
+    , text
+    , tls
+    , unliftio-core
+    , x509-store
+  default-language: Haskell2010
