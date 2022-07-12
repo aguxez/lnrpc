@@ -22,6 +22,9 @@ dependencies:
 - aeson
 - unliftio-core
 - conduit
+- qrcode-core
+- qrcode-juicypixels
+- JuicyPixels
 
 build-tools: proto-lens-protoc:proto-lens-protoc
 

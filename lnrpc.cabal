@@ -28,7 +28,8 @@ library
   build-tool-depends:
       proto-lens-protoc:proto-lens-protoc
   build-depends:
-      aeson
+      JuicyPixels
+    , aeson
     , base
     , base64
     , bytestring
@@ -39,6 +40,8 @@ library
     , http-conduit
     , pretty-hex
     , proto-lens-runtime
+    , qrcode-core
+    , qrcode-juicypixels
     , text
     , tls
     , unliftio-core
@@ -55,7 +58,8 @@ executable lnrpc-exe
   build-tool-depends:
       proto-lens-protoc:proto-lens-protoc
   build-depends:
-      aeson
+      JuicyPixels
+    , aeson
     , base
     , base64
     , bytestring
@@ -68,6 +72,8 @@ executable lnrpc-exe
     , microlens
     , pretty-hex
     , proto-lens
+    , qrcode-core
+    , qrcode-juicypixels
     , text
     , tls
     , unliftio-core
@@ -85,7 +91,8 @@ test-suite lnrpc-test
   build-tool-depends:
       proto-lens-protoc:proto-lens-protoc
   build-depends:
-      aeson
+      JuicyPixels
+    , aeson
     , base >=4.7 && <5
     , base64
     , bytestring
@@ -96,6 +103,8 @@ test-suite lnrpc-test
     , http-conduit
     , lnrpc
     , pretty-hex
+    , qrcode-core
+    , qrcode-juicypixels
     , text
     , tls
     , unliftio-core

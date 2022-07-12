@@ -2,16 +2,20 @@
 
 module LNRPC.Invoice where
 
+import Codec.Picture (DynamicImage (ImageY8), savePngImage)
+import qualified Codec.QRCode as QR
+import Codec.QRCode.JuicyPixels (toImage)
 import Data.Aeson
   ( FromJSON (..),
     ToJSON (..),
+    decode,
     decodeStrict,
+    encode,
     object,
     withObject,
     (.:),
     (.=),
   )
-import Data.ByteString (ByteString)
 import Data.ByteString.Base64 (decodeBase64)
 import qualified Data.ByteString.Char8 as B8
 import Data.Either (fromRight)
@@ -19,7 +23,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import Hexdump (simpleHex)
-import LNRPC.HTTP (Macaroon, MemoryCert, makeRequestStream)
+import LNRPC.HTTP (Macaroon, MemoryCert, makeRequest, makeRequestStream)
 import Network.HTTP.Client (brRead, withResponse)
 import Network.HTTP.Conduit (responseBody)
 import System.IO (stdout)
@@ -46,6 +50,7 @@ data InvoiceResponse = InvoiceResponse
     invoiceResponseAddIndex :: Text,
     invoiceResponsePaymentAddress :: Text
   }
+  deriving (Show)
 
 instance FromJSON InvoiceResponse where
   parseJSON = withObject "InvoiceResponse" $ \x ->
@@ -90,15 +95,43 @@ toHex :: Text -> Text
 toHex = T.pack . filter (/= ' ') . simpleHex . fromRight "" . decodeBase64 . encodeUtf8
 
 -----------------------------------
+invoiceSubscribeURL :: Port -> String
+invoiceSubscribeURL port = "https://localhost:" <> show port <> "/v1/invoices/subscribe"
+
+invoiceCreateURL :: Port -> String
+invoiceCreateURL port = "https://localhost:" <> show port <> "/v1/invoices"
+
 createInvoice :: Maybe Text -> Text -> Maybe Text -> InvoiceRequest
 createInvoice = InvoiceRequest
 
-invoiceURL :: Port -> String
-invoiceURL port = "https://localhost:" <> show port <> "/v1/invoices/subscribe"
+runInvoiceRequest :: InvoiceRequest -> Macaroon -> MemoryCert -> Port -> IO (Maybe InvoiceResponse)
+runInvoiceRequest invoice mac cert port = do
+  res <- makeRequest "POST" (encode invoice) mac cert (invoiceCreateURL port)
+  return $ decode res
+
+createQRFromInvoice :: Maybe InvoiceResponse -> Maybe QR.QRImage
+createQRFromInvoice Nothing = Nothing
+createQRFromInvoice (Just invoice) = QR.encode opts encoding (paymentReq invoice)
+  where
+    paymentReq :: InvoiceResponse -> Text
+    paymentReq = invoiceResponsePaymentRequest
+
+    opts :: QR.QRCodeOptions
+    opts = QR.defaultQRCodeOptions lowErrorLevel
+
+    lowErrorLevel :: QR.ErrorLevel
+    lowErrorLevel = QR.L
+
+    encoding :: QR.TextEncoding
+    encoding = QR.Iso8859_1OrUtf8WithECI
+
+saveQRToDisk :: Maybe QR.QRImage -> IO ()
+saveQRToDisk Nothing = return ()
+saveQRToDisk (Just qr) = savePngImage "img.png" (ImageY8 $ toImage 0 1 qr)
 
 subscribeToInvoice :: Macaroon -> MemoryCert -> Port -> IO ()
 subscribeToInvoice mac cert port = do
-  (req, manager) <- makeRequestStream "GET" "" mac cert (invoiceURL port)
+  (req, manager) <- makeRequestStream "GET" "" mac cert (invoiceSubscribeURL port)
   withResponse req manager $ \response -> do
     let loop = do
           chunk <- brRead $ responseBody response
