@@ -5,6 +5,7 @@ module LNRPC.Invoice where
 import Codec.Picture (DynamicImage (ImageY8), savePngImage)
 import qualified Codec.QRCode as QR
 import Codec.QRCode.JuicyPixels (toImage)
+import Control.Concurrent (ThreadId, forkIO)
 import Data.Aeson
   ( FromJSON (..),
     ToJSON (..),
@@ -129,16 +130,19 @@ saveQRToDisk :: Maybe QR.QRImage -> IO ()
 saveQRToDisk Nothing = return ()
 saveQRToDisk (Just qr) = savePngImage "img.png" (ImageY8 $ toImage 0 1 qr)
 
-subscribeToInvoice :: Macaroon -> MemoryCert -> Port -> IO ()
-subscribeToInvoice mac cert port = do
-  (req, manager) <- makeRequestStream "GET" "" mac cert (invoiceSubscribeURL port)
-  withResponse req manager $ \response -> do
-    let loop = do
-          chunk <- brRead $ responseBody response
-          case decodeStrict chunk :: Maybe InvoiceUpdate of
-            Just v -> do
-              B8.hPutStrLn stdout (encodeUtf8 $ invoiceUpdateHash v)
-              loop
-            Nothing -> loop
+subscribeToInvoice :: Macaroon -> MemoryCert -> Port -> IO ThreadId
+subscribeToInvoice mac cert port = forkIO subscribeToInvoice'
+  where
+    subscribeToInvoice' :: IO ()
+    subscribeToInvoice' = do
+      (req, manager) <- makeRequestStream "GET" "" mac cert (invoiceSubscribeURL port)
+      withResponse req manager $ \response -> do
+        let loop = do
+              chunk <- brRead $ responseBody response
+              case decodeStrict chunk :: Maybe InvoiceUpdate of
+                Just v -> do
+                  B8.hPutStrLn stdout (encodeUtf8 $ invoiceUpdateHash v)
+                  loop
+                Nothing -> loop
 
-    loop
+        loop
