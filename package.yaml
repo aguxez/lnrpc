@@ -22,9 +22,10 @@ dependencies:
 - aeson
 - unliftio-core
 - conduit
-- qrcode-core
-- qrcode-juicypixels
-- JuicyPixels
+- opaleye
+- postgresql-simple
+- product-profunctors
+- resource-pool ==0.3.0.0
 
 build-tools: proto-lens-protoc:proto-lens-protoc
 

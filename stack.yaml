@@ -2,3 +2,6 @@ resolver: lts-19.14
 
 packages:
 - .
+
+extra-deps:
+- resource-pool-0.3.0.0@sha256:b47dca24af48001d8247cc8a38cd09f148e9b22d959b845bbdb43ebf47ab072a,1280

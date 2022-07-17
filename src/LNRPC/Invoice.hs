@@ -2,9 +2,6 @@
 
 module LNRPC.Invoice where
 
-import Codec.Picture (DynamicImage (ImageY8), savePngImage)
-import qualified Codec.QRCode as QR
-import Codec.QRCode.JuicyPixels (toImage)
 import Control.Concurrent (ThreadId, forkIO)
 import Data.Aeson
   ( FromJSON (..),
@@ -24,7 +21,8 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import Hexdump (simpleHex)
-import LNRPC.HTTP (Macaroon, MemoryCert, makeRequest, makeRequestStream)
+import LNRPC.HTTP (makeRequest, makeRequestStream)
+import LNRPC.User (Macaroon, MemoryCert)
 import Network.HTTP.Client (brRead, withResponse)
 import Network.HTTP.Conduit (responseBody)
 import System.IO (stdout)
@@ -109,26 +107,6 @@ runInvoiceRequest :: InvoiceRequest -> Macaroon -> MemoryCert -> Port -> IO (May
 runInvoiceRequest invoice mac cert port = do
   res <- makeRequest "POST" (encode invoice) mac cert (invoiceCreateURL port)
   return $ decode res
-
-createQRFromInvoice :: Maybe InvoiceResponse -> Maybe QR.QRImage
-createQRFromInvoice Nothing = Nothing
-createQRFromInvoice (Just invoice) = QR.encode opts encoding (paymentReq invoice)
-  where
-    paymentReq :: InvoiceResponse -> Text
-    paymentReq = invoiceResponsePaymentRequest
-
-    opts :: QR.QRCodeOptions
-    opts = QR.defaultQRCodeOptions lowErrorLevel
-
-    lowErrorLevel :: QR.ErrorLevel
-    lowErrorLevel = QR.L
-
-    encoding :: QR.TextEncoding
-    encoding = QR.Iso8859_1OrUtf8WithECI
-
-saveQRToDisk :: Maybe QR.QRImage -> IO ()
-saveQRToDisk Nothing = return ()
-saveQRToDisk (Just qr) = savePngImage "img.png" (ImageY8 $ toImage 0 1 qr)
 
 subscribeToInvoice :: Macaroon -> MemoryCert -> Port -> IO ThreadId
 subscribeToInvoice mac cert port = forkIO subscribeToInvoice'

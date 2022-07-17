@@ -14,6 +14,7 @@ import qualified Data.ByteString.Lazy.Char8 as BL8
 import Data.X509.CertificateStore (makeCertificateStore)
 import Data.X509.Memory (readSignedObjectFromMemory)
 import Hexdump (simpleHex)
+import LNRPC.User (Macaroon, MemoryCert)
 import Network.Connection (TLSSettings (..))
 import Network.HTTP.Client
   ( Request (..),
@@ -39,10 +40,6 @@ import Network.TLS
     defaultParamsClient,
   )
 import Network.TLS.Extra.Cipher (ciphersuite_default)
-
-type Macaroon = B.ByteString
-
-type MemoryCert = B.ByteString
 
 macaroonHeader :: Macaroon -> IO Header
 macaroonHeader macaroon = do

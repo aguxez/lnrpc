@@ -19,8 +19,10 @@ custom-setup
 
 library
   exposed-modules:
+      LNRPC.DB
       LNRPC.HTTP
       LNRPC.Invoice
+      LNRPC.User
   other-modules:
       Paths_lnrpc
   hs-source-dirs:
@@ -28,8 +30,7 @@ library
   build-tool-depends:
       proto-lens-protoc:proto-lens-protoc
   build-depends:
-      JuicyPixels
-    , aeson
+      aeson
     , base
     , base64
     , bytestring
@@ -38,10 +39,12 @@ library
     , http-client
     , http-client-tls
     , http-conduit
+    , opaleye
+    , postgresql-simple
     , pretty-hex
+    , product-profunctors
     , proto-lens-runtime
-    , qrcode-core
-    , qrcode-juicypixels
+    , resource-pool ==0.3.0.0
     , text
     , tls
     , unliftio-core
@@ -58,8 +61,7 @@ executable lnrpc-exe
   build-tool-depends:
       proto-lens-protoc:proto-lens-protoc
   build-depends:
-      JuicyPixels
-    , aeson
+      aeson
     , base
     , base64
     , bytestring
@@ -70,10 +72,12 @@ executable lnrpc-exe
     , http-conduit
     , lnrpc
     , microlens
+    , opaleye
+    , postgresql-simple
     , pretty-hex
+    , product-profunctors
     , proto-lens
-    , qrcode-core
-    , qrcode-juicypixels
+    , resource-pool ==0.3.0.0
     , text
     , tls
     , unliftio-core
@@ -91,8 +95,7 @@ test-suite lnrpc-test
   build-tool-depends:
       proto-lens-protoc:proto-lens-protoc
   build-depends:
-      JuicyPixels
-    , aeson
+      aeson
     , base >=4.7 && <5
     , base64
     , bytestring
@@ -102,9 +105,11 @@ test-suite lnrpc-test
     , http-client-tls
     , http-conduit
     , lnrpc
+    , opaleye
+    , postgresql-simple
     , pretty-hex
-    , qrcode-core
-    , qrcode-juicypixels
+    , product-profunctors
+    , resource-pool ==0.3.0.0
     , text
     , tls
     , unliftio-core
