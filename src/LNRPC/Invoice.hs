@@ -3,6 +3,7 @@
 module LNRPC.Invoice where
 
 import Control.Concurrent (ThreadId, forkIO)
+import Control.Monad.IO.Class (liftIO)
 import Data.Aeson
   ( FromJSON (..),
     ToJSON (..),
@@ -19,10 +20,18 @@ import qualified Data.ByteString.Char8 as B8
 import Data.Either (fromRight)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Text.Encoding (encodeUtf8)
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import qualified Database.PostgreSQL.Simple as PGS
 import Hexdump (simpleHex)
 import LNRPC.HTTP (makeRequest, makeRequestStream)
-import LNRPC.User (Macaroon, MemoryCert)
+import LNRPC.User
+  ( Macaroon,
+    MemoryCert,
+    User (..),
+    User' (..),
+    runUserQuery,
+    userByUsername,
+  )
 import Network.HTTP.Client (brRead, withResponse)
 import Network.HTTP.Conduit (responseBody)
 import System.IO (stdout)
@@ -94,9 +103,6 @@ toHex :: Text -> Text
 toHex = T.pack . filter (/= ' ') . simpleHex . fromRight "" . decodeBase64 . encodeUtf8
 
 -----------------------------------
-invoiceSubscribeURL :: Port -> String
-invoiceSubscribeURL port = "https://localhost:" <> show port <> "/v1/invoices/subscribe"
-
 invoiceCreateURL :: Port -> String
 invoiceCreateURL port = "https://localhost:" <> show port <> "/v1/invoices"
 
@@ -108,19 +114,31 @@ runInvoiceRequest invoice mac cert port = do
   res <- makeRequest "POST" (encode invoice) mac cert (invoiceCreateURL port)
   return $ decode res
 
-subscribeToInvoice :: Macaroon -> MemoryCert -> Port -> IO ThreadId
-subscribeToInvoice mac cert port = forkIO subscribeToInvoice'
-  where
-    subscribeToInvoice' :: IO ()
-    subscribeToInvoice' = do
-      (req, manager) <- makeRequestStream "GET" "" mac cert (invoiceSubscribeURL port)
-      withResponse req manager $ \response -> do
-        let loop = do
-              chunk <- brRead $ responseBody response
-              case decodeStrict chunk :: Maybe InvoiceUpdate of
-                Just v -> do
-                  B8.hPutStrLn stdout (encodeUtf8 $ invoiceUpdateHash v)
-                  loop
-                Nothing -> loop
+subscribeToInvoice :: PGS.Connection -> Text -> IO (Maybe ThreadId)
+subscribeToInvoice conn username = do
+  userRes <- liftIO $ runUserQuery conn (userByUsername username)
+  case userRes of
+    [] -> return Nothing
+    (user : _) -> do
+      thread <- forkIO $ subscribeToInvoice' user
+      return $ Just thread
 
-        loop
+handleCertFromDB :: Text -> B8.ByteString
+handleCertFromDB cert = either encodeUtf8 id (decodeBase64 $ encodeUtf8 cert)
+
+subscribeToInvoice' :: User -> IO ()
+subscribeToInvoice' user = do
+  let url = userNodeURL user <> "/v1/invoices/subscribe"
+      mac = fromRight "" $ decodeBase64 $ encodeUtf8 $ userMac user
+      cert = handleCertFromDB $ userCert user
+  (req, manager) <- makeRequestStream "GET" "" (mac :: Macaroon) (cert :: MemoryCert) (T.unpack url)
+  withResponse req manager $ \response -> do
+    let loop = do
+          chunk <- brRead $ responseBody response
+          case decodeStrict chunk :: Maybe InvoiceUpdate of
+            Just v -> do
+              B8.hPutStrLn stdout (encodeUtf8 $ invoiceUpdateHash v)
+              loop
+            Nothing -> loop
+
+    loop
