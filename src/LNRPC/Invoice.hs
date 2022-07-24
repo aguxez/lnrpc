@@ -20,14 +20,14 @@ import qualified Data.ByteString.Char8 as B8
 import Data.Either (fromRight)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import Data.Text.Encoding (encodeUtf8)
 import qualified Database.PostgreSQL.Simple as PGS
 import Hexdump (simpleHex)
 import LNRPC.HTTP (makeRequest, makeRequestStream)
 import LNRPC.User
   ( Macaroon,
     MemoryCert,
-    User (..),
+    User,
     User' (..),
     runUserQuery,
     userByUsername,
@@ -109,9 +109,15 @@ invoiceCreateURL port = "https://localhost:" <> show port <> "/v1/invoices"
 createInvoice :: Maybe Text -> Text -> Maybe Text -> InvoiceRequest
 createInvoice = InvoiceRequest
 
-runInvoiceRequest :: InvoiceRequest -> Macaroon -> MemoryCert -> Port -> IO (Maybe InvoiceResponse)
-runInvoiceRequest invoice mac cert port = do
-  res <- makeRequest "POST" (encode invoice) mac cert (invoiceCreateURL port)
+handleCertFromDB :: Text -> B8.ByteString
+handleCertFromDB cert = either encodeUtf8 id (decodeBase64 $ encodeUtf8 cert)
+
+runInvoiceRequest :: User -> InvoiceRequest -> IO (Maybe InvoiceResponse)
+runInvoiceRequest user invoice = do
+  let url = T.unpack (userNodeURL user <> "/v1/invoices")
+      mac = fromRight "" $ decodeBase64 $ encodeUtf8 $ userMac user
+      cert = handleCertFromDB $ userCert user
+  res <- makeRequest "POST" (encode invoice) mac cert url
   return $ decode res
 
 subscribeToInvoice :: PGS.Connection -> Text -> IO (Maybe ThreadId)
@@ -122,9 +128,6 @@ subscribeToInvoice conn username = do
     (user : _) -> do
       thread <- forkIO $ subscribeToInvoice' user
       return $ Just thread
-
-handleCertFromDB :: Text -> B8.ByteString
-handleCertFromDB cert = either encodeUtf8 id (decodeBase64 $ encodeUtf8 cert)
 
 subscribeToInvoice' :: User -> IO ()
 subscribeToInvoice' user = do

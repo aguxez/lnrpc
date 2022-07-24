@@ -41,30 +41,28 @@ import Network.TLS
   )
 import Network.TLS.Extra.Cipher (ciphersuite_default)
 
-macaroonHeader :: Macaroon -> IO Header
-macaroonHeader macaroon = do
-  let macHex = B8.pack $ filter (/= ' ') $ simpleHex macaroon
-  return ("Grpc-Metadata-macaroon", macHex)
+macaroonHeader :: Macaroon -> Header
+macaroonHeader mac = ("Grpc-Metadata-macaroon", mac)
 
-mkManager :: HostName -> MemoryCert -> IO ManagerSettings
-mkManager hostName cert = do
-  let defs = defaultParamsClient hostName ""
-  let settings =
-        TLSSettings $
-          defs
-            { clientShared =
-                (clientShared defs)
-                  { sharedCAStore =
-                      makeCertificateStore $
-                        readSignedObjectFromMemory cert
-                  },
-              clientSupported =
-                (clientSupported defs)
-                  { supportedCiphers = ciphersuite_default
-                  }
-            }
+mkManager :: HostName -> MemoryCert -> ManagerSettings
+mkManager hostName cert = mkManagerSettings settings Nothing
+  where
+    defs = defaultParamsClient hostName ""
 
-  return $ mkManagerSettings settings Nothing
+    settings =
+      TLSSettings $
+        defs
+          { clientShared =
+              (clientShared defs)
+                { sharedCAStore =
+                    makeCertificateStore $
+                      readSignedObjectFromMemory cert
+                },
+            clientSupported =
+              (clientSupported defs)
+                { supportedCiphers = ciphersuite_default
+                }
+          }
 
 makeRequest ::
   B.ByteString ->
@@ -74,15 +72,13 @@ makeRequest ::
   String ->
   IO BL8.ByteString
 makeRequest reqMethod payload macaroon cert requestURL = do
-  managerSettings <- mkManager "localhost" cert
-  manager <- newManager managerSettings
+  manager <- newManager (mkManager "localhost" cert)
   initReq <- parseRequest requestURL
-  macHeader <- macaroonHeader macaroon
   let req =
         initReq
           { method = reqMethod,
             requestBody = RequestBodyLBS payload,
-            requestHeaders = [macHeader]
+            requestHeaders = [macaroonHeader macaroon]
           }
   res <- httpLbs req manager
   return $ getResponseBody res
@@ -95,14 +91,12 @@ makeRequestStream ::
   String ->
   IO (Request, Manager)
 makeRequestStream reqMethod queryStr macaroon cert requestURL = do
-  managerSettings <- mkManager "localhost" cert
-  manager <- newManager managerSettings
+  manager <- newManager (mkManager "localhost" cert)
   initReq <- parseRequest requestURL
-  macHeader <- macaroonHeader macaroon
   let baseReq =
         initReq
           { method = reqMethod,
             queryString = BL8.toStrict queryStr,
-            requestHeaders = [macHeader]
+            requestHeaders = [macaroonHeader macaroon]
           }
   return (baseReq, manager)
