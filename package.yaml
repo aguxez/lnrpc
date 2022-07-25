@@ -6,6 +6,8 @@ verbatim:
 
 build-type: Custom
 
+ghc-options: -fplugin=Polysemy.Plugin
+
 dependencies:
 - base >= 4.7 && < 5
 - http-conduit
@@ -26,6 +28,16 @@ dependencies:
 - postgresql-simple
 - product-profunctors
 - resource-pool ==0.3.0.0
+- calamity >=0.2.0 && <0.2.1
+- data-default
+- data-flags
+- di
+- di-polysemy
+- generic-lens
+- microlens
+- polysemy
+- polysemy-plugin
+- text-show
 
 build-tools: proto-lens-protoc:proto-lens-protoc
 

@@ -19,6 +19,7 @@ custom-setup
 
 library
   exposed-modules:
+      LNRPC.Bot
       LNRPC.DB
       LNRPC.HTTP
       LNRPC.Invoice
@@ -27,6 +28,7 @@ library
       Paths_lnrpc
   hs-source-dirs:
       src
+  ghc-options: -fplugin=Polysemy.Plugin
   build-tool-depends:
       proto-lens-protoc:proto-lens-protoc
   build-depends:
@@ -34,18 +36,28 @@ library
     , base
     , base64
     , bytestring
+    , calamity ==0.2.0.*
     , conduit
     , connection
+    , data-default
+    , data-flags
+    , di
+    , di-polysemy
+    , generic-lens
     , http-client
     , http-client-tls
     , http-conduit
+    , microlens
     , opaleye
+    , polysemy
+    , polysemy-plugin
     , postgresql-simple
     , pretty-hex
     , product-profunctors
     , proto-lens-runtime
     , resource-pool ==0.3.0.0
     , text
+    , text-show
     , tls
     , unliftio-core
     , x509-store
@@ -57,7 +69,7 @@ executable lnrpc-exe
       Paths_lnrpc
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -fplugin=Polysemy.Plugin -threaded -rtsopts -with-rtsopts=-N
   build-tool-depends:
       proto-lens-protoc:proto-lens-protoc
   build-depends:
@@ -65,20 +77,29 @@ executable lnrpc-exe
     , base
     , base64
     , bytestring
+    , calamity ==0.2.0.*
     , conduit
     , connection
+    , data-default
+    , data-flags
+    , di
+    , di-polysemy
+    , generic-lens
     , http-client
     , http-client-tls
     , http-conduit
     , lnrpc
     , microlens
     , opaleye
+    , polysemy
+    , polysemy-plugin
     , postgresql-simple
     , pretty-hex
     , product-profunctors
     , proto-lens
     , resource-pool ==0.3.0.0
     , text
+    , text-show
     , tls
     , unliftio-core
     , x509-store
@@ -91,7 +112,7 @@ test-suite lnrpc-test
       Paths_lnrpc
   hs-source-dirs:
       test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -fplugin=Polysemy.Plugin -threaded -rtsopts -with-rtsopts=-N
   build-tool-depends:
       proto-lens-protoc:proto-lens-protoc
   build-depends:
@@ -99,18 +120,28 @@ test-suite lnrpc-test
     , base >=4.7 && <5
     , base64
     , bytestring
+    , calamity ==0.2.0.*
     , conduit
     , connection
+    , data-default
+    , data-flags
+    , di
+    , di-polysemy
+    , generic-lens
     , http-client
     , http-client-tls
     , http-conduit
     , lnrpc
+    , microlens
     , opaleye
+    , polysemy
+    , polysemy-plugin
     , postgresql-simple
     , pretty-hex
     , product-profunctors
     , resource-pool ==0.3.0.0
     , text
+    , text-show
     , tls
     , unliftio-core
     , x509-store

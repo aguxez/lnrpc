@@ -11,6 +11,55 @@ packages:
       sha256: 3f32d8e8bb2e68d5d28ed7fd8d960f6c3df95400dd43d68c9b26fdc342a2e9ea
   original:
     hackage: resource-pool-0.3.0.0@sha256:b47dca24af48001d8247cc8a38cd09f148e9b22d959b845bbdb43ebf47ab072a,1280
+- completed:
+    hackage: calamity-0.2.0.2@sha256:39ef0fc3a7d9667b268a1ecec4d86993f67c8039c56238170b9298d847b25b85,6832
+    pantry-tree:
+      size: 7316
+      sha256: 39bc0e94693a68adbdef5627f44eb354d3e30524204bc6c1b28de0c784927248
+  original:
+    hackage: calamity-0.2.0.2@sha256:39ef0fc3a7d9667b268a1ecec4d86993f67c8039c56238170b9298d847b25b85,6832
+- completed:
+    hackage: data-flags-0.0.3.4@sha256:a133f2912e0e22f03419dc89a04b1e117ff6290f1777f5b7f037f683b80ed2cf,1097
+    pantry-tree:
+      size: 383
+      sha256: fabce261d22601659cc3aeab1d5bb8f918dd3f8a8b01a8b9c483a08113a2535a
+  original:
+    hackage: data-flags-0.0.3.4@sha256:a133f2912e0e22f03419dc89a04b1e117ff6290f1777f5b7f037f683b80ed2cf,1097
+- completed:
+    hackage: di-polysemy-0.2.0.0@sha256:9da81102b7e5b2782e4f7194189cde552f042c94ac875ef8f542f6620035f885,2160
+    pantry-tree:
+      size: 320
+      sha256: 103285358a5c2430e3fadd2c35ab285536c05164db1b78ed7155e9ef2e3fae42
+  original:
+    hackage: di-polysemy-0.2.0.0@sha256:9da81102b7e5b2782e4f7194189cde552f042c94ac875ef8f542f6620035f885,2160
+- completed:
+    hackage: aeson-optics-1.2@sha256:6ad1bff2472b899c68658ab4879075fa4ead5902c36437cf6d9cbbb9e6c61aef,1652
+    pantry-tree:
+      size: 340
+      sha256: 29431422a11ac7318a49fc6d697faf590533429707865e849735b1b6aad45972
+  original:
+    hackage: aeson-optics-1.2@sha256:6ad1bff2472b899c68658ab4879075fa4ead5902c36437cf6d9cbbb9e6c61aef,1652
+- completed:
+    hackage: typerep-map-0.5.0.0@sha256:34f1ba9b268a6d52e26ae460011a5571e8099b50a3f4a7c8db25dd8efe3be8ee,4667
+    pantry-tree:
+      size: 1487
+      sha256: ca5565de307d260dc67f6dae0d4d33eee42a3238183461569b5142ceb909c91d
+  original:
+    hackage: typerep-map-0.5.0.0@sha256:34f1ba9b268a6d52e26ae460011a5571e8099b50a3f4a7c8db25dd8efe3be8ee,4667
+- completed:
+    hackage: calamity-commands-0.2.0.0@sha256:7ac503a39bad698f863242aa6782226dd08acb28610da72d1870abb6871503bd,3065
+    pantry-tree:
+      size: 1531
+      sha256: f08d435442673680e45dc67e02062d4330a1ba6b0a959781145081d1ab595c42
+  original:
+    hackage: calamity-commands-0.2.0.0@sha256:7ac503a39bad698f863242aa6782226dd08acb28610da72d1870abb6871503bd,3065
+- completed:
+    hackage: lens-5.1.1@sha256:c86423436b3b301f9882a28cadfebeb10537b2f22ec9690200356389941bd837,14521
+    pantry-tree:
+      size: 8214
+      sha256: 501be2d21ecc9629673b549a62424d9e408190580a24d2a17bc5ca121f1649e6
+  original:
+    hackage: lens-5.1.1@sha256:c86423436b3b301f9882a28cadfebeb10537b2f22ec9690200356389941bd837,14521
 snapshots:
 - completed:
     size: 618951

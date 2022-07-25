@@ -73,7 +73,6 @@ instance FromJSON InvoiceResponse where
       .: "payment_addr"
 
 -----------------------
-
 data InvoiceUpdate = InvoiceUpdate
   { invoiceUpdateMemo :: Text,
     invoiceUpdatePreImage :: Text,
@@ -127,14 +126,14 @@ subscribeToInvoice conn username = do
     [] -> return Nothing
     (user : _) -> do
       thread <- forkIO $ subscribeToInvoice' user
-      return $ Just thread
+      return (Just thread)
 
 subscribeToInvoice' :: User -> IO ()
 subscribeToInvoice' user = do
-  let url = userNodeURL user <> "/v1/invoices/subscribe"
+  let url = T.unpack $ userNodeURL user <> "/v1/invoices/subscribe"
       mac = fromRight "" $ decodeBase64 $ encodeUtf8 $ userMac user
       cert = handleCertFromDB $ userCert user
-  (req, manager) <- makeRequestStream "GET" "" (mac :: Macaroon) (cert :: MemoryCert) (T.unpack url)
+  (req, manager) <- makeRequestStream "GET" "" (mac :: Macaroon) (cert :: MemoryCert) url
   withResponse req manager $ \response -> do
     let loop = do
           chunk <- brRead $ responseBody response
