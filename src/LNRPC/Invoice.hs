@@ -18,6 +18,7 @@ import Data.Aeson
 import Data.ByteString.Base64 (decodeBase64)
 import qualified Data.ByteString.Char8 as B8
 import Data.Either (fromRight)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
@@ -108,13 +109,14 @@ invoiceCreateURL port = "https://localhost:" <> show port <> "/v1/invoices"
 createInvoice :: Maybe Text -> Text -> Maybe Text -> InvoiceRequest
 createInvoice = InvoiceRequest
 
-handleCertFromDB :: Text -> B8.ByteString
-handleCertFromDB cert = either encodeUtf8 id (decodeBase64 $ encodeUtf8 cert)
+handleCertFromDB :: Maybe Text -> B8.ByteString
+handleCertFromDB Nothing = ""
+handleCertFromDB (Just cert) = either encodeUtf8 id (decodeBase64 $ encodeUtf8 cert)
 
 runInvoiceRequest :: User -> InvoiceRequest -> IO (Maybe InvoiceResponse)
 runInvoiceRequest user invoice = do
   let url = T.unpack (userNodeURL user <> "/v1/invoices")
-      mac = fromRight "" $ decodeBase64 $ encodeUtf8 $ userMac user
+      mac = fromRight "" $ decodeBase64 $ encodeUtf8 $ fromMaybe "" $ userMac user
       cert = handleCertFromDB $ userCert user
   res <- makeRequest "POST" (encode invoice) mac cert url
   return $ decode res
@@ -131,7 +133,7 @@ subscribeToInvoice conn username = do
 subscribeToInvoice' :: User -> IO ()
 subscribeToInvoice' user = do
   let url = T.unpack $ userNodeURL user <> "/v1/invoices/subscribe"
-      mac = fromRight "" $ decodeBase64 $ encodeUtf8 $ userMac user
+      mac = fromRight "" $ decodeBase64 $ encodeUtf8 $ fromMaybe "" $ userMac user
       cert = handleCertFromDB $ userCert user
   (req, manager) <- makeRequestStream "GET" "" (mac :: Macaroon) (cert :: MemoryCert) url
   withResponse req manager $ \response -> do

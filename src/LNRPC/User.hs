@@ -22,8 +22,25 @@ import Data.Int (Int64)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
 import qualified Database.PostgreSQL.Simple as PGS
-import Opaleye (Field, Insert (..), Select, SqlText, Table, runSelect, selectTable, table, tableField, where_, (.===))
-import Opaleye.Manipulation (rCount, runInsert)
+import Opaleye
+  ( Field,
+    FieldNullable,
+    Insert (..),
+    Select,
+    SqlText,
+    Table,
+    Update,
+    null,
+    optionalTableField,
+    requiredTableField,
+    runSelect,
+    selectTable,
+    table,
+    where_,
+    (.===),
+  )
+import Opaleye.Manipulation (rCount, runInsert, runUpdate)
+import Opaleye.MaybeFields (MaybeFields (..))
 import Opaleye.SqlTypes (sqlStrictText)
 
 data User' a b c d = User'
@@ -34,9 +51,9 @@ data User' a b c d = User'
   }
   deriving (Show)
 
-type User = User' Text Text Text Text
+type User = User' Text (Maybe Text) (Maybe Text) Text
 
-type UserField = User' (Field SqlText) (Field SqlText) (Field SqlText) (Field SqlText)
+type UserField = User' (Field SqlText) (FieldNullable SqlText) (FieldNullable SqlText) (Field SqlText)
 
 type Macaroon = ByteString
 
@@ -50,10 +67,10 @@ userTable =
     "users"
     ( pUser
         User'
-          { userHandler = tableField "username",
-            userCert = tableField "tls_cert",
-            userMac = tableField "macaroon",
-            userNodeURL = tableField "node_url"
+          { userHandler = requiredTableField "username",
+            userCert = requiredTableField "tls_cert",
+            userMac = requiredTableField "macaroon",
+            userNodeURL = requiredTableField "node_url"
           }
     )
 
@@ -70,20 +87,29 @@ The macaroon needs to be hex encoded when calling the node but we cannot save it
 TODO: Encrypt cert and mac and only give access when a specific encoded key is given. Save key with expiry on Redis.
 TODO: Encapsulate the params in a single type so this function can be more manageable.
 -}
-insertUser :: PGS.Connection -> Text -> Text -> MemoryCert -> Macaroon -> IO Int64
-insertUser conn username nodeURL cert mac = runInsert conn insert
+insertUser :: PGS.Connection -> Text -> Text -> IO Int64
+insertUser conn nodeURL username = runInsert conn insert
   where
     insert :: Insert Int64
     insert =
       Insert
         { iTable = userTable,
-          iRows = [User' (sqlStrictText username) (toBase64 cert) (toBase64 mac) (sqlStrictText nodeURL)],
           iReturning = rCount,
+          iRows = [User' (sqlStrictText username) Opaleye.null Opaleye.null (sqlStrictText nodeURL)],
           iOnConflict = Nothing
         }
 
     toBase64 :: ByteString -> Field SqlText
     toBase64 = sqlStrictText . encodeBase64
+
+-- updateUserTLS :: PGS.Connection -> Text -> IO Int64
+-- updateUserTLS = runUpdate conn update
+--   where
+--     update :: Update Int64
+--     update = Update
+--       { uTable = userTable,
+--         uUpdateWith = updateEasy (\() -> )
+--       }
 
 userByUsername :: Text -> Select UserField
 userByUsername argUsername = do
