@@ -20,21 +20,20 @@ import Data.Maybe
 import Data.Pool (Pool, withResource)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Encoding as TE
+import qualified Data.Text.Lazy.Encoding as TLE
 import qualified Database.PostgreSQL.Simple as PGS
 import qualified Di
 import DiPolysemy
-import LNRPC.User (insertUser)
+import LNRPC.Invoice (InvoiceResponse (..), createInvoice, runInvoiceRequest)
+import LNRPC.User (Macaroon, MemoryCert, insertUser, runUserQuery, updateUserMac, updateUserTLS, userByUsername)
 import Lens.Micro
 import qualified Polysemy as P
 
 -- Incomplete bot token. Do not hack pls
 botToken :: Text
 botToken = "MjUwMTM4OTE4MjgyOTg1NDcz.Gt973s.086SUxFoBEaDYNamAqdhhN6xry3zu1jgp5qv"
-
-doRegisterUser :: PGS.Connection -> Text -> Text -> IO Int64
-doRegisterUser = insertUser
 
 run :: Pool PGS.Connection -> IO ()
 run pool = Di.new $ \di ->
@@ -45,7 +44,7 @@ run pool = Di.new $ \di ->
     . runCacheInMemory
     . runMetricsNoop
     . useFullContext
-    . useConstantPrefix "Z-"
+    . useConstantPrefix "?"
     . runBotIO (BotToken botToken) defaultIntents
     $ do
       info @Text "Setting up commands and handlers..."
@@ -56,6 +55,37 @@ run pool = Di.new $ \di ->
         command @'[Text] "register" $ \ctx nodeURL -> do
           liftIO
             . withResource pool
-            $ \conn -> doRegisterUser conn nodeURL (TL.toStrict . TE.decodeUtf8 . A.encode $ ctx ^. (#user . #id))
+            $ \conn -> insertUser conn nodeURL (TL.toStrict . TLE.decodeUtf8 . A.encode $ ctx ^. (#user . #id))
 
           void . invoke $ CreateReaction (ctx ^. #message) (ctx ^. #message) (UnicodeEmoji "💚")
+
+        command @'[Text] "addCert" $ \ctx cert -> do
+          liftIO
+            . withResource pool
+            $ \conn -> updateUserTLS conn (TE.encodeUtf8 cert) (TL.toStrict . TLE.decodeUtf8 . A.encode $ ctx ^. (#user . #id))
+
+          void . invoke $ CreateReaction (ctx ^. #message) (ctx ^. #message) (UnicodeEmoji "💘")
+
+        command @'[Text] "addMac" $ \ctx mac -> do
+          liftIO
+            . withResource pool
+            $ \conn -> updateUserMac conn (TE.encodeUtf8 mac) (TL.toStrict . TLE.decodeUtf8 . A.encode $ ctx ^. (#user . #id))
+
+          void . invoke $ CreateReaction (ctx ^. #message) (ctx ^. #message) (UnicodeEmoji "💘")
+
+        command @'[Text] "invoice" $ \ctx invoiceValue -> do
+          userRes <- liftIO
+            . withResource pool
+            $ \conn -> runUserQuery conn (userByUsername (TL.toStrict . TLE.decodeUtf8 . A.encode $ ctx ^. (#user . #id)))
+
+          commandResponse <- liftIO $ case userRes of
+            [] -> return "You're not registered yet, please use the `register` command."
+            (user : _) -> do
+              let invoice = createInvoice Nothing invoiceValue Nothing
+              invoice <- runInvoiceRequest user invoice
+
+              case invoice of
+                Nothing -> return "Could not create invoice"
+                (Just invoice) -> return $ invoiceResponseHash invoice
+
+          void . tell @Text (ctx ^. #message) $ commandResponse

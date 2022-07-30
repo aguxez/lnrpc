@@ -9,6 +9,8 @@ module LNRPC.User
     runUserQuery,
     allUsersQuery,
     userByUsername,
+    updateUserTLS,
+    updateUserMac,
     Macaroon,
     MemoryCert,
     User' (..),
@@ -21,6 +23,7 @@ import Data.ByteString.Base64 (encodeBase64)
 import Data.Int (Int64)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
+import qualified Data.Text.Encoding as TE
 import qualified Database.PostgreSQL.Simple as PGS
 import Opaleye
   ( Field,
@@ -29,17 +32,20 @@ import Opaleye
     Select,
     SqlText,
     Table,
-    Update,
+    Update (..),
+    fromNullable,
+    maybeToNullable,
     null,
     optionalTableField,
     requiredTableField,
     runSelect,
     selectTable,
     table,
+    toNullable,
     where_,
     (.===),
   )
-import Opaleye.Manipulation (rCount, runInsert, runUpdate)
+import Opaleye.Manipulation (rCount, runInsert, runUpdate, updateEasy)
 import Opaleye.MaybeFields (MaybeFields (..))
 import Opaleye.SqlTypes (sqlStrictText)
 
@@ -99,17 +105,35 @@ insertUser conn nodeURL username = runInsert conn insert
           iOnConflict = Nothing
         }
 
-    toBase64 :: ByteString -> Field SqlText
-    toBase64 = sqlStrictText . encodeBase64
+updateUserTLS :: PGS.Connection -> MemoryCert -> Text -> IO Int64
+updateUserTLS conn cert username = runUpdate conn update
+  where
+    update :: Update Int64
+    update =
+      Update
+        { uTable = userTable,
+          uUpdateWith = updateEasy (\(User' username_ _ mac_ nodeURL) -> User' username_ (toTextNullable cert) mac_ nodeURL),
+          uWhere = \(User' username_ _ _ _) -> username_ .=== sqlStrictText username,
+          uReturning = rCount
+        }
 
--- updateUserTLS :: PGS.Connection -> Text -> IO Int64
--- updateUserTLS = runUpdate conn update
---   where
---     update :: Update Int64
---     update = Update
---       { uTable = userTable,
---         uUpdateWith = updateEasy (\() -> )
---       }
+    toTextNullable :: MemoryCert -> FieldNullable SqlText
+    toTextNullable = toNullable . sqlStrictText . TE.decodeUtf8
+
+updateUserMac :: PGS.Connection -> Macaroon -> Text -> IO Int64
+updateUserMac conn mac username = runUpdate conn update
+  where
+    update :: Update Int64
+    update =
+      Update
+        { uTable = userTable,
+          uUpdateWith = updateEasy (\(User' username_ cert _ nodeURL) -> User' username_ cert (toTextNullable mac) nodeURL),
+          uWhere = \(User' username_ _ _ _) -> username_ .=== sqlStrictText username,
+          uReturning = rCount
+        }
+
+    toTextNullable :: Macaroon -> FieldNullable SqlText
+    toTextNullable = toNullable . sqlStrictText . TE.decodeUtf8
 
 userByUsername :: Text -> Select UserField
 userByUsername argUsername = do

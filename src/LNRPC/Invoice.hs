@@ -21,7 +21,7 @@ import Data.Either (fromRight)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Text.Encoding (encodeUtf8)
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified Database.PostgreSQL.Simple as PGS
 import Hexdump (simpleHex)
 import LNRPC.HTTP (makeRequest, makeRequestStream)
@@ -116,7 +116,7 @@ handleCertFromDB (Just cert) = either encodeUtf8 id (decodeBase64 $ encodeUtf8 c
 runInvoiceRequest :: User -> InvoiceRequest -> IO (Maybe InvoiceResponse)
 runInvoiceRequest user invoice = do
   let url = T.unpack (userNodeURL user <> "/v1/invoices")
-      mac = fromRight "" $ decodeBase64 $ encodeUtf8 $ fromMaybe "" $ userMac user
+      mac = encodeUtf8 . toHex . decodeUtf8 . fromRight "" . decodeBase64 . encodeUtf8 . fromMaybe "" $ userMac user
       cert = handleCertFromDB $ userCert user
   res <- makeRequest "POST" (encode invoice) mac cert url
   return $ decode res
@@ -126,15 +126,16 @@ subscribeToInvoice conn username = do
   userRes <- liftIO $ runUserQuery conn (userByUsername username)
   case userRes of
     [] -> return Nothing
-    (user : _) -> do
+    (encodeUtf8 user : _) -> do
       thread <- forkIO $ subscribeToInvoice' user
       return (Just thread)
 
 subscribeToInvoice' :: User -> IO ()
 subscribeToInvoice' user = do
   let url = T.unpack $ userNodeURL user <> "/v1/invoices/subscribe"
-      mac = fromRight "" $ decodeBase64 $ encodeUtf8 $ fromMaybe "" $ userMac user
+      mac = encodeUtf8 . toHex . decodeUtf8 . fromRight "" . decodeBase64 . encodeUtf8 . fromMaybe "" $ userMac user
       cert = handleCertFromDB $ userCert user
+  print mac
   (req, manager) <- makeRequestStream "GET" "" (mac :: Macaroon) (cert :: MemoryCert) url
   withResponse req manager $ \response -> do
     let loop = do
