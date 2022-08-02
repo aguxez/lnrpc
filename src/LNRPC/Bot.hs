@@ -33,7 +33,7 @@ import qualified Polysemy as P
 
 -- Incomplete bot token. Do not hack pls
 botToken :: Text
-botToken = "MjUwMTM4OTE4MjgyOTg1NDcz.Gt973s.086SUxFoBEaDYNamAqdhhN6xry3zu1jgp5qv"
+botToken = "MjUwMTM4OTE4MjgyOTg1NDcz.GvaedL.rgYSvlH_FgHDxbVlFcY4L6XZLAtjUderMCZg"
 
 run :: Pool PGS.Connection -> IO ()
 run pool = Di.new $ \di ->
@@ -86,6 +86,6 @@ run pool = Di.new $ \di ->
 
               case invoice of
                 Nothing -> return "Could not create invoice"
-                (Just invoice) -> return $ invoiceResponseHash invoice
+                (Just invoice) -> return $ invoiceResponsePaymentRequest invoice
 
           void . tell @Text (ctx ^. #message) $ commandResponse

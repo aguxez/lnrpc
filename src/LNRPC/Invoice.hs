@@ -15,6 +15,7 @@ import Data.Aeson
     (.:),
     (.=),
   )
+import Data.ByteString (ByteString)
 import Data.ByteString.Base64 (decodeBase64)
 import qualified Data.ByteString.Char8 as B8
 import Data.Either (fromRight)
@@ -97,10 +98,13 @@ instance FromJSON InvoiceUpdate where
     paymentReq <- result .: "payment_request"
 
     return $
-      InvoiceUpdate memo preImg (toHex rHash) value isSettled settleDate paymentReq
+      InvoiceUpdate memo preImg (toHex' rHash) value isSettled settleDate paymentReq
 
-toHex :: Text -> Text
-toHex = T.pack . filter (/= ' ') . simpleHex . fromRight "" . decodeBase64 . encodeUtf8
+toHex' :: Text -> Text
+toHex' = T.pack . filter (/= ' ') . simpleHex . fromRight "" . decodeBase64 . encodeUtf8
+
+toHex :: ByteString -> ByteString
+toHex = B8.pack . filter (/= ' ') . simpleHex
 
 -----------------------------------
 invoiceCreateURL :: Port -> String
@@ -116,7 +120,7 @@ handleCertFromDB (Just cert) = either encodeUtf8 id (decodeBase64 $ encodeUtf8 c
 runInvoiceRequest :: User -> InvoiceRequest -> IO (Maybe InvoiceResponse)
 runInvoiceRequest user invoice = do
   let url = T.unpack (userNodeURL user <> "/v1/invoices")
-      mac = encodeUtf8 . toHex . decodeUtf8 . fromRight "" . decodeBase64 . encodeUtf8 . fromMaybe "" $ userMac user
+      mac = toHex . fromRight "" . decodeBase64 . encodeUtf8 . fromMaybe "" $ userMac user
       cert = handleCertFromDB $ userCert user
   res <- makeRequest "POST" (encode invoice) mac cert url
   return $ decode res
@@ -126,14 +130,14 @@ subscribeToInvoice conn username = do
   userRes <- liftIO $ runUserQuery conn (userByUsername username)
   case userRes of
     [] -> return Nothing
-    (encodeUtf8 user : _) -> do
+    (user : _) -> do
       thread <- forkIO $ subscribeToInvoice' user
       return (Just thread)
 
 subscribeToInvoice' :: User -> IO ()
 subscribeToInvoice' user = do
   let url = T.unpack $ userNodeURL user <> "/v1/invoices/subscribe"
-      mac = encodeUtf8 . toHex . decodeUtf8 . fromRight "" . decodeBase64 . encodeUtf8 . fromMaybe "" $ userMac user
+      mac = toHex . fromRight "" . decodeBase64 . encodeUtf8 . fromMaybe "" $ userMac user
       cert = handleCertFromDB $ userCert user
   print mac
   (req, manager) <- makeRequestStream "GET" "" (mac :: Macaroon) (cert :: MemoryCert) url
